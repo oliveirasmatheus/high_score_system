@@ -2,102 +2,255 @@
 # Global High Score System Documentation
 
 ## Overview
-The Global High Score System is designed to handle the submission, retrieval, and management of video game high scores. It provides a reliable, scalable, and fault-tolerant API for players to compete globally by recording their scores securely.
-
-### Key Features
-- **Metadata Support:** Records player scores along with location, timestamp, and game metadata.
-- **Scalable Architecture:** Handles high traffic with low-latency responses.
-- **Security:** Secure authentication and input validation.
-- **Fault Tolerance:** Designed for high availability and reliability.
-
----
-
-## System Design
-
-![diagram-export-12-4-2024-12_02_28-AM](https://github.com/user-attachments/assets/6859a9c4-4d92-4fcd-8815-1c56b6076747)
+The Global High Score System is designed to handle the submission, retrieval, and management of video game high scores. It provides a reliable, scalable, and fault-tolerant API for players by recording their scores securely.
 
 
-The architecture includes the following components:
-- **Web Interface:** Score Display Page and Score Submission Page.
-- **API Layer:** Includes Score Retrieval and Submission APIs.
-- **Backend Logic:** Powered by Node.js and integrated with a Load Balancer.
-- **Data Storage:** Utilizes a relational database for persistent storage and CDN for performance.
-- **Authentication Service:** Ensures secure access and authentic submissions.
+## Requirements
 
----
+### Functional Requirements
+- The score will be displayed in a web page or pages.
+- Scores can also be retrieved via an API.
+- Scores can be submitted via web page or an API.
+- Scores can only be edited by the submitter.
 
-## Functional Requirements
+### Non-Functional Requirements
+- Reliability
+- Availability
+- Scalability
+
+## System Architecture
+
+![diagram-export-12-4-2024-11_22_13-PM](https://github.com/user-attachments/assets/8957b173-8f74-456a-bb32-9e71afdc68d1)
+
+## API
+The API designed for this architecture follows the RESTful paradigm. This approach was chosen due to its simplicity, scalability, and widespread adoption, which ensures compatibility with a wide range of clients and technologies. 
+- Use the `/scores/` endpoint to retrieve all players and games top scores.
+- Use the `/scores/submit` endpoint to record player scores.
+- Use the `/scores/game` endpoint to get scores by game.
+- Use the `/scores/player/:player-id` endpoint to get all scores from a single player   
 
 ### Score Submission
-The request would be an HTTP POST request to the API server's `/submit` endpoint. It should include the following JSON payload:
-**Endpoint:** `POST /scores/submit`
+The request would be an HTTP POST request to the API server's `/scores/submit` endpoint. It should include the following JSON payload:
 
 #### Request Example
 ```json
 POST /scores/submit HTTP/1.1
-Host: api.highscore.com
-Authorization: Bearer YOUR_API_KEY
+Authorization: Bearer <JWT>
 Content-Type: application/json
 
 {
+  "user_id": 321,
   "score": 123456,
-  "player_name": "GameMaster",
-  "game_name": "Space Invaders",
-  "timestamp": "2024-03-15T22:30:45Z",
+  "game_name": "Pokemon",
+  "date_time": "2024-03-15T22:30:45Z",
   "location": {
-    "country": "US",
-    "city": "San Francisco",
-    "coordinates": {
-      "lat": 37.7749,
-      "lon": -122.4194
-    }
+    "latitude": 37.7749,
+    "longitude": -122.4194
   }
 }
 ```
 
-### What should the response from your system look like? When should it respond?
-The response will include:
-- **Status Code:**
-  - `200 OK` for a successful submission.
-  - `400 Bad Request` for invalid data.
-  - `401 Unauthorized` for authentication failures.
+### Response
+The response is sent immediately after the request is processed.
 
-Example JSON response for success:
-#### Response Example
+#### Response Example Status code 200 OK
 ```json
 {
   "status": "success",
   "message": "Score submitted successfully",
   "data": {
+    "score_id": 123,
+    "user_id": 321,
     "score": 123456,
-    "player_name": "GameMaster",
-    "game_name": "Space Invaders",
-    "timestamp": "2024-03-15T22:30:45Z",
+    "game_name": "Pokemon",
+    "date_time": "2024-03-15T22:30:45Z",
     "location": {
-      "country": "US",
-      "city": "San Francisco",
-      "coordinates": {
-        "lat": 37.7749,
-        "lon": -122.4194
-      }
+      "latitude": 37.7749,
+      "longitude": -122.4194
     }
   }
 }
 ```
 
-The response is sent immediately after the request is processed.
+#### Response Example Status code 404 not found
+```json
+{
+  "status": "error",
+  "message": "User not found",
+  "errors": [
+    {
+      "code": "USER_NOT_REGISTERED",
+      "detail": "The provided user ID does not exist in our system.",
+      "suggestion": "Please register an account before submitting scores.",
+      "action": {
+        "type": "register",
+        "url": "/auth/register"
+      }
+    }
+  ]
+}
+```
 
----
+### Get All Scores
+Retrieves all players and games top scores.
 
-## Data Storage
+#### Request Example
+```json
+GET /scores/ HTTP/1.1
+Authorization: Bearer <JWT>
+```
 
-### How does your system store the data?
-The data is stored in a relational database (e.g., PostgreSQL or MySQL). It includes tables for:
-- Scores (storing player scores and metadata)
-- Players (player profiles and authentication data)
-- Games (metadata about supported games)
+#### Response Example Status code 200 OK
+```json
+{
+  "status": "success",
+  "data": {
+    "scores": [
+      {
+        "score_id": 123,
+        "user_id": 321,
+        "score": 123456,
+        "game_name": "Pokemon",
+        "date_time": "2024-03-15T22:30:45Z"
+      },
+      {
+        "score_id": 124,
+        "user_id": 322,
+        "score": 98765,
+        "game_name": "Tetris",
+        "date_time": "2024-03-15T22:31:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 150,
+      "page": 1,
+      "per_page": 20
+    }
+  }
+}
+```
 
----
+### Get Scores by Game
+Retrieves all scores for a specific game.
+
+#### Request Example
+```json
+GET /scores/game?name=Pokemon HTTP/1.1
+Authorization: Bearer <JWT>
+```
+
+#### Response Example Status code 200 OK
+```json
+{
+  "status": "success",
+  "data": {
+    "game_name": "Pokemon",
+    "scores": [
+      {
+        "score_id": 123,
+        "user_id": 321,
+        "score": 123456,
+        "date_time": "2024-03-15T22:30:45Z"
+      },
+      {
+        "score_id": 125,
+        "user_id": 323,
+        "score": 89012,
+        "date_time": "2024-03-15T22:32:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 50,
+      "page": 1,
+      "per_page": 20
+    }
+  }
+}
+```
+
+### Get Player Scores
+Retrieves all scores for a specific player.
+
+#### Request Example
+```json
+GET /scores/player/321 HTTP/1.1
+Authorization: Bearer <JWT>
+```
+
+#### Response Example Status code 200 OK
+```json
+{
+  "status": "success",
+  "data": {
+    "user_id": 321,
+    "scores": [
+      {
+        "score_id": 123,
+        "game_name": "Pokemon",
+        "score": 123456,
+        "date_time": "2024-03-15T22:30:45Z"
+      },
+      {
+        "score_id": 126,
+        "game_name": "Tetris",
+        "score": 45678,
+        "date_time": "2024-03-15T22:33:00Z"
+      }
+    ],
+    "pagination": {
+      "total": 25,
+      "page": 1,
+      "per_page": 20
+    }
+  }
+}
+```
+
+#### Response Example Status code 404 Not Found
+```json
+{
+  "status": "error",
+  "message": "Player not found",
+  "errors": [
+    {
+      "code": "PLAYER_NOT_FOUND",
+      "detail": "The specified player ID does not exist in our system.",
+      "suggestion": "Please verify the player ID and try again."
+    }
+  ]
+}
+```
+
+## Data storage
+
+![diagram-export-12-4-2024-10_28_53-PM](https://github.com/user-attachments/assets/feb70d8c-b81c-4324-a086-2bc292b433f7)
+
+
+### How does the system store data
+
+1. **User Submits Data**:
+  - The **Web Pages** or **API Client** sends a request to the **API Gateway** with the data to be stored (e.g., a new video game score).
+   
+2. **API Gateway Routes the Request**:  
+  - The **API Gateway** checks the request for authentication and authorization. If the request is valid, it forwards the request to the **Authentication Service** to verify the user’s identity.
+
+3. **Authentication Service**:  
+  - The **Authentication Service** validates the user's credentials (e.g., checking if the user is logged in or if the request contains a valid token).
+  - If the authentication is successful, the **API Gateway** passes the request along to the **Web Server** for further processing.
+
+4. **Web Server Processes the Request**:  
+  - The **Web Server** receives the validated request and processes the data (e.g., saving a new high score).  
+  - The server interacts with the **Relational Database** to store the data.
+   
+5. **Storing the Data**:  
+  - The data (score, player name, game name, date, and location) is saved to the **Relational Database** for persistence.
+  - Optionally, the system may use a **Cache** for quick access to frequently requested data.
+
+6. **Async Processing** (if needed):  
+  - For performance reasons, some operations (e.g., processing scores for leaderboards) might be offloaded to **asynchronous processing** via a **Message Queue**.
+
+7. **Confirmation Response**:  
+  - After successfully storing the data, the **Web Server** sends a response back to the **API Gateway**, which then forwards the response to the **Web Pages** or **API Client** confirming that the score has been added.
 
 ## System Considerations
 
@@ -107,158 +260,39 @@ The data is stored in a relational database (e.g., PostgreSQL or MySQL). It incl
    - Redundant backend services.
    - Monitoring with alerting systems.
      
-![diagram-export-12-4-2024-12_23_07-AM](https://github.com/user-attachments/assets/f0f1ad3e-43c0-4542-8556-ba1828756f80)
 
 2. **Availability:**
    - Load balancing and failover mechanisms.
    - Auto-scaling of resources during high demand.
 
-![diagram-export-12-4-2024-12_26_00-AM](https://github.com/user-attachments/assets/ebbce041-fe40-4019-9bb1-5e7b10a5f9ec)
 
 3. **Scalability:**
    - Distributed architecture.
    - Leveraging caching and horizontal scaling for backend services.
 
-![diagram-export-12-4-2024-12_36_46-AM](https://github.com/user-attachments/assets/0d013d9a-83d0-47f0-8e32-82ccd5b49658)
-
-
----
-
 ## Fault Tolerance
 
-### How is your system fault-tolerant?
-- Redundant backend and database components.
-- Load balancer for traffic distribution.
-- Circuit breakers, retries, and fallback strategies in API and processing layers.
-
----
+- Load Balancer: Redirects traffic to healthy web servers.
+- Database Replication: Ensures data is available even if the primary database fails.
+- Message Queue: Ensures that asynchronous tasks are retried on failure.
 
 ## Security
 
-### How can we ensure that the system is only receiving authentic scores?
-- Authentication Service validates users through API keys, OAuth, or JWT.
+- Authentication Service validates users through API keys and JWT.
 - Secure HTTPS communication.
 - Input data validation to prevent tampering.
 
----
-
 ## Load Handling
 
-### How are you handling peak loads?
 - Load balancer distributes traffic evenly across instances.
 - Caching frequent queries and asynchronous message queues reduce backend load.
 - Auto-scaling ensures adequate resources during high-traffic periods.
 
----
-
 ## Input Validation
 
-### What other input validation might we want to do?
 - **Duplicate Check:** Ensure no duplicate submissions (e.g., same player, game, and timestamp).
 - **Game Validation:** Validate game names against a predefined list.
-- **Location Validation:** Check GPS coordinates and address formats.
+- **Location Validation:** Verify that the location is a valid, recognizable format.
 - **Content Moderation:** Sanitize player names to avoid inappropriate submissions.
 
----
 
-## Tutorials
-
-### Getting Started
-1. **Set Up Your Environment**
-   - Use HTTPS for secure communication.
-
-2. **Integrate API Endpoints**
-   - Use the `/scores/submit` endpoint to record player scores.
-   - Use the `/scores/leaderboard` endpoint to retrieve top scores.
-
-3. **Test Your Integration**
-   - Test API calls using tools like Postman or cURL.
-
-### Base URL
-All requests should be made to:
-```
-https://api.highscore.com/v1
-```
-
-### Authorization
-Include your API key in the `Authorization` header:
-```
-Authorization: Bearer YOUR_API_KEY
-```
-
----
-
-## More API Examples
-
-
-### Retrieve Leaderboard
-**Endpoint:** `GET /scores/leaderboard`
-
-#### Request Example
-```json
-GET /scores/leaderboard?game_name=Space%20Invaders&limit=5 HTTP/1.1
-Host: api.highscore.com
-Authorization: Bearer YOUR_API_KEY
-```
-
-#### Response Example
-```json
-{
-  "status": "success",
-  "data": [
-    {
-      "rank": 1,
-      "score": 123456,
-      "player_name": "GameMaster",
-      "timestamp": "2024-03-15T22:30:45Z",
-      "location": {
-        "country": "US",
-        "city": "San Francisco",
-        "coordinates": {
-          "lat": 37.7749,
-          "lon": -122.4194
-        }
-      }
-    },
-    {
-      "rank": 2,
-      "score": 100000,
-      "player_name": "PixelWarrior",
-      "timestamp": "2024-03-15T20:10:15Z",
-      "location": {
-        "country": "CA",
-        "city": "Toronto",
-        "coordinates": {
-          "lat": 43.65107,
-          "lon": -79.347015
-        }
-      }
-    }
-  ]
-}
-```
-
----
-
-### Error Example
-**Invalid API Key:**
-```json
-{
-  "status": "error",
-  "message": "Invalid API Key",
-  "code": 401
-}
-```
-
----
-
-## Glossary
-
-- **API (Application Programming Interface):** A set of endpoints and methods that allow communication between systems.
-- **Cache:** A temporary storage layer that speeds up data retrieval.
-- **Load Balancer:** A tool that distributes network traffic across multiple servers.
-- **JWT (JSON Web Token):** A secure token format for authentication.
-- **Player Name:** The name of the player submitting a score.
-- **Game Name:** The name of the game for which the score is submitted.
-- **Timestamp:** The date and time when the score was achieved, in ISO 8601 format.
-- **Location:** Metadata including the player's country, city, and geographic coordinates.
