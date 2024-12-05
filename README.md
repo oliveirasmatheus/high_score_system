@@ -25,16 +25,15 @@ The Global High Score System is designed to handle the submission, retrieval, an
 ## API
 The API designed for this architecture follows the RESTful paradigm. This approach was chosen due to its simplicity, scalability, and widespread adoption, which ensures compatibility with a wide range of clients and technologies. 
 - Use the `/scores/` endpoint to retrieve all players and games top scores.
-- Use the `/scores/submit` endpoint to record player scores.
 - Use the `/scores/game` endpoint to get scores by game.
 - Use the `/scores/player/:player-id` endpoint to get all scores from a single player   
 
 ### Score Submission
-The request would be an HTTP POST request to the API server's `/scores/submit` endpoint. It should include the following JSON payload:
+The request would be an HTTP POST request to the API server's `/scores/` endpoint. It should include the following JSON payload:
 
 #### Request Example
 ```json
-POST /scores/submit HTTP/1.1
+POST /scores/ HTTP/1.1
 Authorization: Bearer <JWT>
 Content-Type: application/json
 
